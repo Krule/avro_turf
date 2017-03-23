@@ -58,6 +58,21 @@ describe AvroTurf::Messaging do
       expect(avro.decode(data)).to eq message
       expect(Avro::Schema).not_to have_received(:parse)
     end
+
+    it "when include_meta is not false" do
+      expect(AvroTurf.logger).to receive(:info).twice
+      data = avro.encode(message, schema_name: "person")
+      message_container = avro.decode(data, include_meta: true)
+      allow(Avro::Schema).to receive(:parse).and_call_original
+      expect(message_container).to be_a AvroTurf::Message
+      expect(message_container.value).to eq message
+      expect(message_container.schema).to be_a AvroTurf::Message::Schema
+      expect(message_container.schema.name).to eq "person"
+      expect(message_container.schema.namespace).to eq nil
+      expect(message_container.schema.fullname).to eq "person"
+      expect(message_container.schema.fields).to eq [{"name"=>"full_name", "type"=>"string"}]
+      expect(Avro::Schema).not_to have_received(:parse)
+    end
   end
 
   it_behaves_like "encoding and decoding"

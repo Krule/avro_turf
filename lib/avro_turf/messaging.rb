@@ -3,6 +3,7 @@ require 'avro_turf'
 require 'avro_turf/schema_store'
 require 'avro_turf/confluent_schema_registry'
 require 'avro_turf/cached_confluent_schema_registry'
+require 'avro_turf/message'
 
 # For back-compatibility require the aliases along with the Messaging API.
 # These names are deprecated and will be removed in a future release.
@@ -79,7 +80,7 @@ class AvroTurf
     # namespace   - The namespace of the schema (optional).
     #
     # Returns the decoded message.
-    def decode(data, schema_name: nil, namespace: @namespace)
+    def decode(data, schema_name: nil, namespace: @namespace, include_meta: false)
       readers_schema = schema_name && @schema_store.find(schema_name, namespace)
       stream = StringIO.new(data)
       decoder = Avro::IO::BinaryDecoder.new(stream)
@@ -100,7 +101,10 @@ class AvroTurf
       end
 
       reader = Avro::IO::DatumReader.new(writers_schema, readers_schema)
-      reader.read(decoder)
+      response = reader.read(decoder)
+      return response unless include_meta
+
+      Message.new(response, schema_id, readers_schema || writers_schema)
     end
   end
 end
